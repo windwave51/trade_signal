@@ -66,7 +66,10 @@ INDICATOR_DESC = {
     '거래량':  '20일 평균 거래량 대비 비율. 200%↑ 급등 신호, 50%↓ 관심 감소',
     'PER':    '주가수익비율. 낮을수록 이익 대비 저평가',
     'PBR':    '주가순자산비율. 1.0 이하면 자산 대비 저평가',
-    '점수':   '6개 지표 합산. +5↑ 매수, +2~+4 관심, -1~+1 관망, -4~-2 주의, -5↓ 매도',
+    '점수':      '6개 지표 합산. +5↑ 매수, +2~+4 관심, -1~+1 관망, -4~-2 주의, -5↓ 매도',
+    '외국인순매수': '당일 외국인 순매수 주수·금액. 양수=순매수(강세), 음수=순매도(약세)',
+    '기관순매수':   '당일 기관 순매수. 연기금·투신·은행 등 포함. 외국인과 방향 일치 시 강한 신호',
+    '프로그램':     '컴퓨터 자동매매. 차익거래(선물-현물 가격차 이용)·비차익(ETF 리밸런싱 등) 포함',
 }
 
 @st.cache_data(ttl=1800)
@@ -138,6 +141,28 @@ def fetch_stocks(token):
         )
         if not data: continue
         out = data.get('output', {})
+        # 프로그램 매매
+        time.sleep(0.3)
+        prog_data = safe_get(
+            f'{BASE_URL}/uapi/domestic-stock/v1/quotations/program-trade-by-stock',
+            get_headers('FHPPG04650100', token),
+            {'FID_COND_MRKT_DIV_CODE':'J','FID_INPUT_ISCD':ticker,
+             'FID_INPUT_DATE_1':get_last_biz(),'FID_INPUT_DATE_2':get_last_biz(),
+             'FID_PRC_CLS_CODE':'0','FID_PERIOD_DIV_CODE':'D'},
+        )
+        prog_out = prog_data['output'][0] if prog_data and prog_data.get('output') else {}
+
+        # 외국인·기관·개인 수급
+        time.sleep(0.3)
+        inv_data = safe_get(
+            f'{BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-investor',
+            get_headers('FHKST01010900', token),
+            {'FID_COND_MRKT_DIV_CODE':'J','FID_INPUT_ISCD':ticker,
+             'FID_INPUT_DATE_1':get_last_biz(),'FID_INPUT_DATE_2':get_last_biz(),
+             'FID_PERIOD_DIV_CODE':'D'},
+        )
+        inv_out = inv_data['output'][0] if inv_data and inv_data.get('output') else {}
+
         result[name] = {
             '현재가':       int(out.get('stck_prpr',0)),
             '전일대비':     int(out.get('prdy_vrss',0)),
@@ -151,6 +176,16 @@ def fetch_stocks(token):
             'PER':          float(out.get('per',0)),
             'PBR':          float(out.get('pbr',0)),
             '시가총액(억)': int(out.get('hts_avls',0)),
+            # 프로그램 매매
+            '프로그램_순매수':  int(prog_out.get('whol_smtn_ntby_qty',0)),
+            '프로그램_매수량':  int(prog_out.get('whol_smtn_shnu_vol',0)),
+            '프로그램_매도량':  int(prog_out.get('whol_smtn_seln_vol',0)),
+            # 외국인·기관·개인
+            '외국인_순매수':    int(inv_out.get('frgn_ntby_qty',0)),
+            '기관_순매수':      int(inv_out.get('orgn_ntby_qty',0)),
+            '개인_순매수':      int(inv_out.get('prsn_ntby_qty',0)),
+            '외국인_순매수금':  int(inv_out.get('frgn_ntby_tr_pbmn',0)),
+            '기관_순매수금':    int(inv_out.get('orgn_ntby_tr_pbmn',0)),
         }
     return result
 
@@ -259,6 +294,28 @@ def build_card(name, s, t, sig):
         '</div>'
         '<div style="margin-top:8px"><div class="metric-label" style="margin-bottom:4px">시가 / 고가 / 저가</div>'
         '<div style="font-size:0.8rem;color:#adb5bd;">' + f"{s.get('시가',0):,}" + ' / ' + f"{s.get('고가',0):,}" + ' / ' + f"{s.get('저가',0):,}" + '</div></div>'
+        '<hr class="divider">'
+        '<div class="metric-label" style="margin-bottom:6px">수급 동향</div>'
+        '<div class="metric-grid">'
+        '<div class="metric-item">'
+        '<div class="metric-label">외국인 순매수</div>'
+        '<div class="metric-value ' + ('price-up' if s.get('외국인_순매수',0)>0 else 'price-down') + '">'
+        + ('+' if s.get('외국인_순매수',0)>0 else '') + f"{s.get('외국인_순매수',0):,}주" + '</div>'
+        '<div class="tip">' + ('+' if s.get('외국인_순매수금',0)>0 else '') + f"{s.get('외국인_순매수금',0):,}백만" + '</div>'
+        '</div>'
+        '<div class="metric-item">'
+        '<div class="metric-label">기관 순매수</div>'
+        '<div class="metric-value ' + ('price-up' if s.get('기관_순매수',0)>0 else 'price-down') + '">'
+        + ('+' if s.get('기관_순매수',0)>0 else '') + f"{s.get('기관_순매수',0):,}주" + '</div>'
+        '<div class="tip">' + ('+' if s.get('기관_순매수금',0)>0 else '') + f"{s.get('기관_순매수금',0):,}백만" + '</div>'
+        '</div>'
+        '<div class="metric-item">'
+        '<div class="metric-label">프로그램 순매수</div>'
+        '<div class="metric-value ' + ('price-up' if s.get('프로그램_순매수',0)>0 else 'price-down') + '">'
+        + ('+' if s.get('프로그램_순매수',0)>0 else '') + f"{s.get('프로그램_순매수',0):,}주" + '</div>'
+        '<div class="tip">매수 ' + f"{s.get('프로그램_매수량',0):,}" + ' / 매도 ' + f"{s.get('프로그램_매도량',0):,}" + '</div>'
+        '</div>'
+        '</div>'
         '<hr class="divider">'
         '<div class="metric-label" style="margin-bottom:4px">판단 근거</div>'
         + reasons + '</div>'
