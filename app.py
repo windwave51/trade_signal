@@ -1,248 +1,150 @@
-
 import streamlit as st
 import requests
-import json
 import time
 import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-st.set_page_config(
-    page_title="Trade Signal",
-    page_icon="📊",
-    layout="wide",
-)
+st.set_page_config(page_title='Trade Signal', page_icon='📊', layout='wide')
 
-# ============================================================
-# 스타일
-# ============================================================
-st.markdown("""
-<style>
-/* 카드 기본 */
-.card {
-    background: #1e2130;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
-    border: 1px solid #2d3250;
-}
-/* 종목 헤더 */
-.stock-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #2d3250;
-}
-.stock-name { font-size: 1.1rem; font-weight: 700; color: #e0e4f0; }
-.stock-price { font-size: 1.4rem; font-weight: 800; color: #ffffff; }
-.price-up   { color: #ff6b6b; }
-.price-down { color: #4ecdc4; }
-/* 시그널 뱃지 */
-.badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-.badge-buy     { background: #1a472a; color: #51cf66; border: 1px solid #51cf66; }
-.badge-watch   { background: #1a3a5c; color: #74c0fc; border: 1px solid #74c0fc; }
-.badge-hold    { background: #2d2d2d; color: #adb5bd; border: 1px solid #adb5bd; }
-.badge-caution { background: #3d2a00; color: #ffd43b; border: 1px solid #ffd43b; }
-.badge-sell    { background: #4a1010; color: #ff6b6b; border: 1px solid #ff6b6b; }
-/* 지표 그리드 */
-.metric-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
-}
-.metric-item {
-    background: #252840;
-    border-radius: 8px;
-    padding: 10px 12px;
-}
-.metric-label {
-    font-size: 0.7rem;
-    color: #868e96;
-    margin-bottom: 2px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-.metric-value {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #e0e4f0;
-}
-/* 근거 리스트 */
-.reason-item {
-    font-size: 0.8rem;
-    color: #adb5bd;
-    padding: 3px 0;
-    border-bottom: 1px solid #2d3250;
-}
-/* 설명 툴팁 */
-.tip {
-    font-size: 0.75rem;
-    color: #636e80;
-    font-style: italic;
-    margin-top: 2px;
-}
-/* 구분선 */
-.divider { border: none; border-top: 1px solid #2d3250; margin: 8px 0; }
-/* 시장 지표 */
-.market-card {
-    background: #1e2130;
-    border-radius: 10px;
-    padding: 14px 16px;
-    border: 1px solid #2d3250;
-    text-align: center;
-}
-.market-label { font-size: 0.72rem; color: #868e96; margin-bottom: 4px; }
-.market-value { font-size: 1.05rem; font-weight: 700; color: #e0e4f0; }
-.market-chg-up   { font-size: 0.8rem; color: #ff6b6b; }
-.market-chg-down { font-size: 0.8rem; color: #4ecdc4; }
-</style>
-""", unsafe_allow_html=True)
+st.markdown('''<style>
+.card{background:#1e2130;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid #2d3250;}
+.stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #2d3250;}
+.stock-name{font-size:1.1rem;font-weight:700;color:#e0e4f0;}
+.stock-price{font-size:1.4rem;font-weight:800;color:#ffffff;}
+.price-up{color:#ff6b6b;}
+.price-down{color:#4ecdc4;}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.85rem;font-weight:600;}
+.badge-buy{background:#1a472a;color:#51cf66;border:1px solid #51cf66;}
+.badge-watch{background:#1a3a5c;color:#74c0fc;border:1px solid #74c0fc;}
+.badge-hold{background:#2d2d2d;color:#adb5bd;border:1px solid #adb5bd;}
+.badge-caution{background:#3d2a00;color:#ffd43b;border:1px solid #ffd43b;}
+.badge-sell{background:#4a1010;color:#ff6b6b;border:1px solid #ff6b6b;}
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.metric-item{background:#252840;border-radius:8px;padding:10px 12px;}
+.metric-label{font-size:0.7rem;color:#868e96;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px;}
+.metric-value{font-size:0.95rem;font-weight:600;color:#e0e4f0;}
+.reason-item{font-size:0.8rem;color:#adb5bd;padding:3px 0;border-bottom:1px solid #2d3250;}
+.tip{font-size:0.75rem;color:#636e80;font-style:italic;margin-top:2px;}
+.divider{border:none;border-top:1px solid #2d3250;margin:8px 0;}
+.market-card{background:#1e2130;border-radius:10px;padding:14px 16px;border:1px solid #2d3250;text-align:center;}
+.market-label{font-size:0.72rem;color:#868e96;margin-bottom:4px;}
+.market-value{font-size:1.05rem;font-weight:700;color:#e0e4f0;}
+.market-chg-up{font-size:0.8rem;color:#ff6b6b;}
+.market-chg-down{font-size:0.8rem;color:#4ecdc4;}
+</style>''', unsafe_allow_html=True)
 
-# ============================================================
-# 설정
-# ============================================================
-APP_KEY    = st.secrets["APP_KEY"]
-APP_SECRET = st.secrets["APP_SECRET"]
-BASE_URL   = "https://openapi.koreainvestment.com:9443"
+APP_KEY    = st.secrets['APP_KEY']
+APP_SECRET = st.secrets['APP_SECRET']
+BASE_URL   = 'https://openapi.koreainvestment.com:9443'
 
 WATCHLIST = {
-    "삼성전자":           "005930",
-    "SK하이닉스":         "000660",
-    "LS전기":             "010120",
-    "LIG넥스원":          "079550",
-    "한화에어로스페이스":  "012450",
-    "현대차":             "005380",
-    "현대로템":           "064350",
-    "두산에너빌리티":      "034020",
+    '삼성전자':           '005930',
+    'SK하이닉스':         '000660',
+    'LS전기':             '010120',
+    'LIG넥스원':          '079550',
+    '한화에어로스페이스':  '012450',
+    '현대차':             '005380',
+    '현대로템':           '064350',
+    '두산에너빌리티':      '034020',
 }
-WATCHLIST_YF = {k: v + ".KS" for k, v in WATCHLIST.items()}
+WATCHLIST_YF = {k: v + '.KS' for k, v in WATCHLIST.items()}
 
-# 지표 설명
 INDICATOR_DESC = {
-    "RSI":    "14일 상대강도지수. 70↑ 과매수(하락 가능), 30↓ 과매도(반등 가능), 중립 30~70",
-    "MACD":   "단기(12일)·장기(26일) 이동평균 차이. 골든크로스(✅)면 상승 모멘텀, 데드크로스(❌)면 하락",
-    "%B":     "볼린저밴드 내 현재 위치. 100%↑ 상단 돌파(과열), 0%↓ 하단 이탈(과매도)",
-    "밴드폭": "볼린저밴드 폭. 좁을수록 변동성 수축(큰 움직임 예고), 넓을수록 변동성 확대",
-    "MA배열": "현재가가 5·20·60·120일 이동평균선 위에 있는 개수. 4/4면 완전 상승배열",
-    "거래량":  "20일 평균 거래량 대비 오늘 거래량 비율. 200%↑ 급등 신호, 50%↓ 관심 감소",
-    "PER":    "주가수익비율. 낮을수록 이익 대비 저평가. 섹터 평균과 비교 필요",
-    "PBR":    "주가순자산비율. 1.0 이하면 자산 대비 저평가. 성장주는 높은 경향",
-    "점수":   "RSI·MACD·볼린저·MA배열·거래량·PBR 6개 지표 합산. +5↑ 매수, -4↓ 매도",
+    'RSI':    '14일 상대강도지수. 70↑ 과매수(하락 가능), 30↓ 과매도(반등 가능)',
+    'MACD':   '단기(12일)·장기(26일) 이동평균 차이. 골든크로스면 상승 모멘텀',
+    '%B':     '볼린저밴드 내 현재 위치. 100%↑ 상단돌파(과열), 0%↓ 하단이탈(과매도)',
+    '밴드폭': '볼린저밴드 폭. 좁을수록 변동성 수축(큰 움직임 예고)',
+    'MA배열': '현재가가 5·20·60·120일 이평선 위에 있는 개수. 4/4 완전 상승배열',
+    '거래량':  '20일 평균 거래량 대비 비율. 200%↑ 급등 신호, 50%↓ 관심 감소',
+    'PER':    '주가수익비율. 낮을수록 이익 대비 저평가',
+    'PBR':    '주가순자산비율. 1.0 이하면 자산 대비 저평가',
+    '점수':   '6개 지표 합산. +5↑ 매수, +2~+4 관심, -1~+1 관망, -4~-2 주의, -5↓ 매도',
 }
 
-# ============================================================
-# KIS 공통
-# ============================================================
 @st.cache_data(ttl=1800)
 def get_access_token():
     res = requests.post(
-        f"{BASE_URL}/oauth2/tokenP",
-        headers={"Content-Type": "application/json"},
-        json={"grant_type": "client_credentials",
-              "appkey": APP_KEY, "appsecret": APP_SECRET},
+        f'{BASE_URL}/oauth2/tokenP',
+        headers={'Content-Type': 'application/json'},
+        json={'grant_type': 'client_credentials', 'appkey': APP_KEY, 'appsecret': APP_SECRET},
     )
-    return res.json()["access_token"]
+    return res.json()['access_token']
 
 def get_headers(tr_id, token):
     return {
-        "Content-Type":  "application/json",
-        "Authorization": f"Bearer {token}",
-        "appkey":        APP_KEY,
-        "appsecret":     APP_SECRET,
-        "tr_id":         tr_id,
-        "custtype":      "P",
+        'Content-Type':  'application/json',
+        'Authorization': f'Bearer {token}',
+        'appkey':        APP_KEY,
+        'appsecret':     APP_SECRET,
+        'tr_id':         tr_id,
+        'custtype':      'P',
     }
 
 def safe_get(url, headers, params):
     try:
         res = requests.get(url, headers=headers, params=params, timeout=5)
-        if not res.text.strip():
-            return None
+        if not res.text.strip(): return None
         data = res.json()
-        return data if data.get("rt_cd") == "0" else None
-    except:
-        return None
+        return data if data.get('rt_cd') == '0' else None
+    except: return None
 
 def get_last_biz():
     d = datetime.today()
-    while d.weekday() >= 5:
-        d -= timedelta(days=1)
-    return d.strftime("%Y%m%d")
+    while d.weekday() >= 5: d -= timedelta(days=1)
+    return d.strftime('%Y%m%d')
 
-# ============================================================
-# 데이터 수집
-# ============================================================
 @st.cache_data(ttl=300)
 def fetch_market(token):
     result = {}
     data = safe_get(
-        f"{BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-index-price",
-        get_headers("FHPUP02100000", token),
-        {"FID_COND_MRKT_DIV_CODE": "U", "FID_INPUT_ISCD": "0021"},
+        f'{BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-index-price',
+        get_headers('FHPUP02100000', token),
+        {'FID_COND_MRKT_DIV_CODE': 'U', 'FID_INPUT_ISCD': '0021'},
     )
     if data:
-        out = data["output"]
-        result["코스피200"] = {
-            "현재가":    out.get("bstp_nmix_prpr", "-"),
-            "등락률(%)": float(out.get("bstp_nmix_prdy_ctrt", 0)),
+        out = data['output']
+        result['코스피200'] = {
+            '현재가':    out.get('bstp_nmix_prpr', '-'),
+            '등락률(%)': float(out.get('bstp_nmix_prdy_ctrt', 0)),
         }
-    tickers = {
-        "VIX": "^VIX", "SOX": "^SOX",
-        "원/달러": "KRW=X", "미국채10Y": "^TNX",
-        "WTI": "CL=F",
-    }
+    tickers = {'VIX':'^VIX','SOX':'^SOX','원/달러':'KRW=X','미국채10Y':'^TNX','WTI':'CL=F'}
     for name, ticker in tickers.items():
         try:
-            hist = yf.Ticker(ticker).history(period="2d")
-            if hist.empty:
-                continue
-            close = hist["Close"].iloc[-1]
-            prev  = hist["Close"].iloc[-2] if len(hist) > 1 else close
-            result[name] = {
-                "현재가":    round(float(close), 2),
-                "등락률(%)": round(float((close - prev) / prev * 100), 2),
-            }
-        except:
-            pass
+            hist = yf.Ticker(ticker).history(period='2d')
+            if hist.empty: continue
+            close = hist['Close'].iloc[-1]
+            prev  = hist['Close'].iloc[-2] if len(hist) > 1 else close
+            result[name] = {'현재가': round(float(close),2), '등락률(%)': round(float((close-prev)/prev*100),2)}
+        except: pass
     return result
 
 @st.cache_data(ttl=300)
 def fetch_stocks(token):
     result = {}
-    last_biz = get_last_biz()
     for name, ticker in WATCHLIST.items():
         time.sleep(0.4)
         data = safe_get(
-            f"{BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price",
-            get_headers("FHKST01010100", token),
-            {"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": ticker},
+            f'{BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-price',
+            get_headers('FHKST01010100', token),
+            {'FID_COND_MRKT_DIV_CODE': 'J', 'FID_INPUT_ISCD': ticker},
         )
-        if not data:
-            continue
-        out = data.get("output", {})
+        if not data: continue
+        out = data.get('output', {})
         result[name] = {
-            "현재가":       int(out.get("stck_prpr",  0)),
-            "전일대비":     int(out.get("prdy_vrss",  0)),
-            "등락률(%)":    float(out.get("prdy_ctrt", 0)),
-            "거래량":       int(out.get("acml_vol",   0)),
-            "시가":         int(out.get("stck_oprc",  0)),
-            "고가":         int(out.get("stck_hgpr",  0)),
-            "저가":         int(out.get("stck_lwpr",  0)),
-            "52주고가":     int(out.get("w52_hgpr",   0)),
-            "52주저가":     int(out.get("w52_lwpr",   0)),
-            "PER":          float(out.get("per",       0)),
-            "PBR":          float(out.get("pbr",       0)),
-            "시가총액(억)": int(out.get("hts_avls",   0)),
+            '현재가':       int(out.get('stck_prpr',0)),
+            '전일대비':     int(out.get('prdy_vrss',0)),
+            '등락률(%)':    float(out.get('prdy_ctrt',0)),
+            '거래량':       int(out.get('acml_vol',0)),
+            '시가':         int(out.get('stck_oprc',0)),
+            '고가':         int(out.get('stck_hgpr',0)),
+            '저가':         int(out.get('stck_lwpr',0)),
+            '52주고가':     int(out.get('w52_hgpr',0)),
+            '52주저가':     int(out.get('w52_lwpr',0)),
+            'PER':          float(out.get('per',0)),
+            'PBR':          float(out.get('pbr',0)),
+            '시가총액(억)': int(out.get('hts_avls',0)),
         }
     return result
 
@@ -251,89 +153,112 @@ def fetch_tech():
     result = {}
     for name, ticker in WATCHLIST_YF.items():
         try:
-            hist = yf.Ticker(ticker).history(period="6mo")
-            if hist.empty or len(hist) < 30:
-                continue
-            close  = hist["Close"]
-            volume = hist["Volume"]
+            hist = yf.Ticker(ticker).history(period='6mo')
+            if hist.empty or len(hist) < 30: continue
+            close  = hist['Close']
+            volume = hist['Volume']
             delta  = close.diff()
             gain   = delta.clip(lower=0).rolling(14).mean()
             loss   = (-delta.clip(upper=0)).rolling(14).mean()
-            rsi    = float((100 - 100 / (1 + gain / loss.replace(0, np.nan))).iloc[-1])
-            ema12  = close.ewm(span=12, adjust=False).mean()
-            ema26  = close.ewm(span=26, adjust=False).mean()
+            rsi    = float((100 - 100/(1+gain/loss.replace(0,np.nan))).iloc[-1])
+            ema12  = close.ewm(span=12,adjust=False).mean()
+            ema26  = close.ewm(span=26,adjust=False).mean()
             macd   = ema12 - ema26
-            signal = macd.ewm(span=9, adjust=False).mean()
-            hist_v = float((macd - signal).iloc[-1])
+            signal = macd.ewm(span=9,adjust=False).mean()
+            hist_v = float((macd-signal).iloc[-1])
             golden = bool(macd.iloc[-1] > signal.iloc[-1])
             mid    = close.rolling(20).mean()
             std    = close.rolling(20).std()
-            up     = mid + 2 * std
-            dn     = mid - 2 * std
-            pctb   = float(((close - dn) / (up - dn) * 100).iloc[-1])
-            bw     = float(((up - dn) / mid * 100).iloc[-1])
+            up     = mid + 2*std
+            dn     = mid - 2*std
+            pctb   = float(((close-dn)/(up-dn)*100).iloc[-1])
+            bw     = float(((up-dn)/mid*100).iloc[-1])
             cur    = float(close.iloc[-1])
-            bb_pos = ("상단돌파" if cur > float(up.iloc[-1])
-                      else "하단이탈" if cur < float(dn.iloc[-1]) else "밴드내")
-            ma_above = sum(1 for p in [5, 20, 60, 120]
-                          if len(close) >= p and cur > float(close.rolling(p).mean().iloc[-1]))
-            vr = float(volume.iloc[-1] / volume.rolling(20).mean().iloc[-1] * 100)
+            bb_pos = '상단돌파' if cur>float(up.iloc[-1]) else '하단이탈' if cur<float(dn.iloc[-1]) else '밴드내'
+            ma_above = sum(1 for p in [5,20,60,120] if len(close)>=p and cur>float(close.rolling(p).mean().iloc[-1]))
+            vr = float(volume.iloc[-1]/volume.rolling(20).mean().iloc[-1]*100)
             result[name] = {
-                "RSI": round(rsi, 1), "Histogram": round(hist_v, 1),
-                "골든크로스": golden, "%B": round(pctb, 1),
-                "밴드폭(%)": round(bw, 1), "BB위치": bb_pos,
-                "MA상승수": ma_above, "거래량비율(%)": round(vr, 1),
+                'RSI':round(rsi,1),'Histogram':round(hist_v,1),
+                '골든크로스':golden,'%B':round(pctb,1),
+                '밴드폭(%)':round(bw,1),'BB위치':bb_pos,
+                'MA상승수':ma_above,'거래량비율(%)':round(vr,1),
             }
-        except:
-            pass
+        except: pass
     return result
 
 def calc_signal(stock, tech):
-    score = 0
-    log   = []
-    rsi   = tech.get("RSI", 50)
-    if rsi <= 30:    score += 2; log.append(f"RSI 과매도({rsi}) +2")
-    elif rsi <= 45:  score += 1; log.append(f"RSI 저점권({rsi}) +1")
-    elif rsi >= 70:  score -= 2; log.append(f"RSI 과매수({rsi}) -2")
-    elif rsi >= 60:  score -= 1; log.append(f"RSI 고점권({rsi}) -1")
-    else:                        log.append(f"RSI 중립({rsi}) 0")
-    hist_v = tech.get("Histogram", 0)
-    golden = tech.get("골든크로스", False)
+    score=0; log=[]
+    rsi = tech.get('RSI',50)
+    if rsi<=30:   score+=2; log.append(f'RSI 과매도({rsi}) +2')
+    elif rsi<=45: score+=1; log.append(f'RSI 저점권({rsi}) +1')
+    elif rsi>=70: score-=2; log.append(f'RSI 과매수({rsi}) -2')
+    elif rsi>=60: score-=1; log.append(f'RSI 고점권({rsi}) -1')
+    else:                   log.append(f'RSI 중립({rsi}) 0')
+    hist_v=tech.get('Histogram',0); golden=tech.get('골든크로스',False)
     if golden:
-        v = 2 if hist_v > 0 else 1; score += v; log.append(f"MACD 골든크로스 +{v}")
+        v=2 if hist_v>0 else 1; score+=v; log.append(f'MACD 골든크로스 +{v}')
     else:
-        v = 2 if hist_v < 0 else 1; score -= v; log.append(f"MACD 데드크로스 -{v}")
-    pctb   = tech.get("%B", 50)
-    bb_pos = tech.get("BB위치", "밴드내")
-    if bb_pos == "하단이탈":   score += 2; log.append("볼린저 하단이탈 +2")
-    elif pctb <= 20:            score += 1; log.append(f"볼린저 하단근접(%B:{pctb}) +1")
-    elif bb_pos == "상단돌파":  score -= 2; log.append("볼린저 상단돌파 -2")
-    elif pctb >= 80:            score -= 1; log.append(f"볼린저 상단근접(%B:{pctb}) -1")
-    else:                                   log.append(f"볼린저 중립(%B:{pctb}) 0")
-    ma = tech.get("MA상승수", 0)
-    if ma >= 3:    score += 2; log.append(f"MA 상승배열({ma}/4) +2")
-    elif ma >= 2:  score += 1; log.append(f"MA 부분상승({ma}/4) +1")
-    elif ma <= 1:  score -= 2; log.append(f"MA 하락배열({ma}/4) -2")
-    else:          score -= 1; log.append(f"MA 부분하락({ma}/4) -1")
-    vr = tech.get("거래량비율(%)", 100)
-    if vr >= 200:   score += 1; log.append(f"거래량 급등({vr}%) +1")
-    elif vr <= 50:  score -= 1; log.append(f"거래량 급감({vr}%) -1")
-    else:                       log.append(f"거래량 보통({vr}%) 0")
-    pbr = stock.get("PBR", 0)
-    if 0 < pbr <= 1.0:  score += 1; log.append(f"PBR 저평가({pbr}) +1")
-    elif pbr >= 15:     score -= 1; log.append(f"PBR 고평가({pbr}) -1")
-    else:                           log.append(f"PBR 중립({pbr}) 0")
-    if score >= 5:    sig, badge = "🟢 매수", "badge-buy"
-    elif score >= 2:  sig, badge = "🔵 관심", "badge-watch"
-    elif score >= -1: sig, badge = "⚪ 관망", "badge-hold"
-    elif score >= -4: sig, badge = "🟡 주의", "badge-caution"
-    else:             sig, badge = "🔴 매도", "badge-sell"
-    return {"점수": score, "시그널": sig, "뱃지": badge, "근거": log}
+        v=2 if hist_v<0 else 1; score-=v; log.append(f'MACD 데드크로스 -{v}')
+    pctb=tech.get('%B',50); bb_pos=tech.get('BB위치','밴드내')
+    if bb_pos=='하단이탈':   score+=2; log.append('볼린저 하단이탈 +2')
+    elif pctb<=20:           score+=1; log.append(f'볼린저 하단근접(%B:{pctb}) +1')
+    elif bb_pos=='상단돌파': score-=2; log.append('볼린저 상단돌파 -2')
+    elif pctb>=80:           score-=1; log.append(f'볼린저 상단근접(%B:{pctb}) -1')
+    else:                              log.append(f'볼린저 중립(%B:{pctb}) 0')
+    ma=tech.get('MA상승수',0)
+    if ma>=3:   score+=2; log.append(f'MA 상승배열({ma}/4) +2')
+    elif ma>=2: score+=1; log.append(f'MA 부분상승({ma}/4) +1')
+    elif ma<=1: score-=2; log.append(f'MA 하락배열({ma}/4) -2')
+    else:       score-=1; log.append(f'MA 부분하락({ma}/4) -1')
+    vr=tech.get('거래량비율(%)',100)
+    if vr>=200:  score+=1; log.append(f'거래량 급등({vr}%) +1')
+    elif vr<=50: score-=1; log.append(f'거래량 급감({vr}%) -1')
+    else:                  log.append(f'거래량 보통({vr}%) 0')
+    pbr=stock.get('PBR',0)
+    if 0<pbr<=1.0:  score+=1; log.append(f'PBR 저평가({pbr}) +1')
+    elif pbr>=15:   score-=1; log.append(f'PBR 고평가({pbr}) -1')
+    else:                     log.append(f'PBR 중립({pbr}) 0')
+    if score>=5:    sig,badge='🟢 매수','badge-buy'
+    elif score>=2:  sig,badge='🔵 관심','badge-watch'
+    elif score>=-1: sig,badge='⚪ 관망','badge-hold'
+    elif score>=-4: sig,badge='🟡 주의','badge-caution'
+    else:           sig,badge='🔴 매도','badge-sell'
+    return {'점수':score,'시그널':sig,'뱃지':badge,'근거':log}
 
-# ============================================================
-# UI
-# ============================================================
-st.title("📊 Trade Signal")
+def build_card(name, s, t, sig):
+    chg     = s.get('등락률(%)', 0)
+    chg_cls = 'price-up' if chg > 0 else 'price-down'
+    sign    = '▲' if chg > 0 else '▼'
+    golden  = '✅ 골든' if t.get('골든크로스') else '❌ 데드'
+    bb_pos  = t.get('BB위치', '-')
+    reasons = ''.join('<div class="reason-item">· ' + r + '</div>' for r in sig['근거'])
+    return (
+        '<div class="card">'
+        '<div class="stock-header">'
+        '<div>'
+        '<div class="stock-name">' + name + '</div>'
+        '<span class="badge ' + sig['뱃지'] + '">' + sig['시그널'] + ' ' + f"{sig['점수']:+d}점" + '</span>'
+        '</div>'
+        '<div style="text-align:right">'
+        '<div class="stock-price">' + f"{s['현재가']:,}" + '</div>'
+        '<div class="' + chg_cls + '">' + sign + ' ' + f'{abs(chg):.2f}%' + '</div>'
+        '</div></div>'
+        '<div class="metric-grid">'
+        '<div class="metric-item"><div class="metric-label">RSI(14)</div><div class="metric-value">' + str(t.get('RSI','-')) + '</div><div class="tip">70↑과매수 · 30↓과매도</div></div>'
+        '<div class="metric-item"><div class="metric-label">MACD</div><div class="metric-value">' + golden + '</div><div class="tip">단기-장기 이평 교차</div></div>'
+        '<div class="metric-item"><div class="metric-label">%B / 밴드위치</div><div class="metric-value">' + str(t.get('%B','-')) + '%</div><div class="tip">' + bb_pos + ' · 밴드폭' + str(t.get('밴드폭(%)','- ')) + '%</div></div>'
+        '<div class="metric-item"><div class="metric-label">MA 배열</div><div class="metric-value">' + str(t.get('MA상승수',0)) + '/4</div><div class="tip">5·20·60·120일선 위</div></div>'
+        '<div class="metric-item"><div class="metric-label">거래량비율</div><div class="metric-value">' + str(t.get('거래량비율(%)' ,'-')) + '%</div><div class="tip">20일 평균 대비</div></div>'
+        '<div class="metric-item"><div class="metric-label">PER / PBR</div><div class="metric-value">' + str(s.get('PER','-')) + ' / ' + str(s.get('PBR','-')) + '</div><div class="tip">PBR 1↓ 자산 저평가</div></div>'
+        '</div>'
+        '<div style="margin-top:8px"><div class="metric-label" style="margin-bottom:4px">시가 / 고가 / 저가</div>'
+        '<div style="font-size:0.8rem;color:#adb5bd;">' + f"{s.get('시가',0):,}" + ' / ' + f"{s.get('고가',0):,}" + ' / ' + f"{s.get('저가',0):,}" + '</div></div>'
+        '<hr class="divider">'
+        '<div class="metric-label" style="margin-bottom:4px">판단 근거</div>'
+        + reasons + '</div>'
+    )
+
+st.title('📊 Trade Signal')
 st.caption(f"마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  |  ※ 투자 참고용")
 
 token    = get_access_token()
@@ -341,177 +266,83 @@ market   = fetch_market(token)
 stocks   = fetch_stocks(token)
 tech_all = fetch_tech()
 
-# ------------------------------------------------------------
-# 섹션 1. 시장 지표
-# ------------------------------------------------------------
-st.subheader("🌐 시장 지표")
-
+st.subheader('🌐 시장 지표')
 market_items = [
-    ("코스피200", "국내 대형주 200개 지수"),
-    ("VIX",      "공포지수. 20↑ 불안, 30↑ 공포"),
-    ("SOX",      "미국 반도체 지수. 국내 반도체주 선행"),
-    ("원/달러",  "환율↑ = 수출주 유리, 외국인 이탈 가능"),
-    ("미국채10Y", "장기금리↑ = 성장주 부담, 금융주 유리"),
-    ("WTI",      "국제유가. 에너지·운송·화학 업종 영향"),
+    ('코스피200', '국내 대형주 200개 지수'),
+    ('VIX',      '공포지수. 20↑ 불안, 30↑ 공포'),
+    ('SOX',      '미국 반도체지수. 국내 반도체주 선행'),
+    ('원/달러',  '환율↑ = 수출주 유리'),
+    ('미국채10Y','장기금리↑ = 성장주 부담'),
+    ('WTI',      '국제유가. 에너지·운송 업종 영향'),
 ]
-cols = st.columns(len(market_items))
+mcols = st.columns(len(market_items))
 for i, (key, desc) in enumerate(market_items):
     d   = market.get(key, {})
-    val = d.get("현재가", "-")
-    chg = d.get("등락률(%)", 0)
+    val = d.get('현재가', '-')
+    chg = d.get('등락률(%)', 0)
     try:
-        chg_f    = float(chg)
-        chg_str  = f"{chg_f:+.2f}%"
-        chg_cls  = "market-chg-up" if chg_f > 0 else "market-chg-down"
+        chg_f   = float(chg)
+        chg_str = f'{chg_f:+.2f}%'
+        chg_cls = 'market-chg-up' if chg_f > 0 else 'market-chg-down'
     except:
-        chg_str = "-"
-        chg_cls = "market-chg-down"
-    cols[i].markdown(f"""
-    <div class="market-card">
-        <div class="market-label">{key}</div>
-        <div class="market-value">{val}</div>
-        <div class="{chg_cls}">{chg_str}</div>
-        <div class="tip">{desc}</div>
-    </div>
-    """, unsafe_allow_html=True)
+        chg_str = '-'; chg_cls = 'market-chg-down'
+    mcols[i].markdown(
+        '<div class="market-card">'
+        '<div class="market-label">' + key + '</div>'
+        '<div class="market-value">' + str(val) + '</div>'
+        '<div class="' + chg_cls + '">' + chg_str + '</div>'
+        '<div class="tip">' + desc + '</div>'
+        '</div>', unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ------------------------------------------------------------
-# 섹션 2. 시그널 요약 테이블
-# ------------------------------------------------------------
-st.subheader("📋 시그널 요약")
-
+st.markdown('<br>', unsafe_allow_html=True)
+st.subheader('📋 시그널 요약')
 rows = []
 for name in WATCHLIST:
-    s = stocks.get(name, {})
-    t = tech_all.get(name, {})
-    if not s or not t:
-        continue
+    s = stocks.get(name, {}); t = tech_all.get(name, {})
+    if not s or not t: continue
     sig = calc_signal(s, t)
     rows.append({
-        "종목":        name,
-        "현재가(원)":  f"{s['현재가']:,}",
-        "등락률":      f"{s['등락률(%)']:+.2f}%",
-        "RSI":         t.get("RSI", "-"),
-        "%B":          t.get("%B", "-"),
-        "MA배열":      f"{t.get('MA상승수', 0)}/4",
-        "거래량비율":  f"{t.get('거래량비율(%)', '-')}%",
-        "점수":        sig["점수"],
-        "시그널":      sig["시그널"],
+        '종목': name,
+        '현재가(원)': f"{s['현재가']:,}",
+        '등락률': f"{s['등락률(%)']:+.2f}%",
+        'RSI': t.get('RSI','-'),
+        '%B': t.get('%B','-'),
+        'MA배열': f"{t.get('MA상승수',0)}/4",
+        '거래량비율': f"{t.get('거래량비율(%)' ,'-')}%",
+        '점수': sig['점수'],
+        '시그널': sig['시그널'],
     })
-
-df = pd.DataFrame(rows).sort_values("점수", ascending=False).reset_index(drop=True)
+import pandas as pd
+df = pd.DataFrame(rows).sort_values('점수', ascending=False).reset_index(drop=True)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-with st.expander("📖 점수 해석 가이드"):
-    st.markdown("""
-    | 점수 | 시그널 | 의미 |
-    |------|--------|------|
-    | +5 이상 | 🟢 매수 | 다수 지표 매수 신호 일치 |
-    | +2 ~ +4 | 🔵 관심 | 긍정 신호 우세, 추가 확인 필요 |
-    | -1 ~ +1 | ⚪ 관망 | 신호 혼재, 관망 권장 |
-    | -4 ~ -2 | 🟡 주의 | 부정 신호 우세, 리스크 관리 필요 |
-    | -5 이하 | 🔴 매도 | 다수 지표 매도 신호 일치 |
+with st.expander('📖 점수 해석 가이드'):
+    st.markdown('''
+| 점수 | 시그널 | 의미 |
+|------|--------|------|
+| +5 이상 | 🟢 매수 | 다수 지표 매수 신호 일치 |
+| +2 ~ +4 | 🔵 관심 | 긍정 신호 우세 |
+| -1 ~ +1 | ⚪ 관망 | 신호 혼재 |
+| -4 ~ -2 | 🟡 주의 | 부정 신호 우세 |
+| -5 이하 | 🔴 매도 | 다수 지표 매도 신호 일치 |
 
-    > 점수는 RSI·MACD·볼린저밴드·이동평균·거래량·PBR 6개 지표 합산입니다.
-    > 수급(외국인·기관)과 뉴스는 반영되지 않으므로 반드시 교차 확인하세요.
-    """)
+> 수급(외국인·기관)과 뉴스는 반영되지 않으므로 반드시 교차 확인하세요.
+    ''')
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ------------------------------------------------------------
-# 섹션 3. 종목별 상세 카드 (전 종목 한 화면)
-# ------------------------------------------------------------
-st.subheader("🔍 종목별 상세")
-
-# 4열 2행 그리드
+st.markdown('<br>', unsafe_allow_html=True)
+st.subheader('🔍 종목별 상세')
 names = list(WATCHLIST.keys())
 for row_start in range(0, len(names), 4):
     cols = st.columns(4)
     for col_idx, name in enumerate(names[row_start:row_start+4]):
-        s = stocks.get(name, {})
-        t = tech_all.get(name, {})
-        if not s or not t:
-            continue
-        sig      = calc_signal(s, t)
-        chg      = s.get("등락률(%)", 0)
-        chg_cls  = "price-up" if chg > 0 else "price-down"
-        sign_str = "▲" if chg > 0 else "▼"
-        rsi      = t.get("RSI", "-")
-        pctb     = t.get("%B", "-")
-        bw       = t.get("밴드폭(%)", "-")
-        ma       = t.get("MA상승수", 0)
-        vr       = t.get("거래량비율(%)", "-")
-        bb_pos   = t.get("BB위치", "-")
-        golden   = "✅ 골든" if t.get("골든크로스") else "❌ 데드"
-
+        s = stocks.get(name, {}); t = tech_all.get(name, {})
+        if not s or not t: continue
+        sig = calc_signal(s, t)
         with cols[col_idx]:
-            st.markdown(f"""
-            <div class="card">
-                <div class="stock-header">
-                    <div>
-                        <div class="stock-name">{name}</div>
-                        <span class="badge {sig["뱃지"]}">{sig["시그널"]}  {sig["점수"]:+d}점</span>
-                    </div>
-                    <div style="text-align:right">
-                        <div class="stock-price">{s["현재가"]:,}</div>
-                        <div class="{chg_cls}">{sign_str} {abs(chg):.2f}%</div>
-                    </div>
-                </div>
+            st.markdown(build_card(name, s, t, sig), unsafe_allow_html=True)
 
-                <div class="metric-grid">
-                    <div class="metric-item">
-                        <div class="metric-label">RSI(14)</div>
-                        <div class="metric-value">{rsi}</div>
-                        <div class="tip">70↑과매수 30↓과매도</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">MACD</div>
-                        <div class="metric-value">{golden}</div>
-                        <div class="tip">단기-장기 이평 교차</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">%B / 위치</div>
-                        <div class="metric-value">{pctb}%</div>
-                        <div class="tip">{bb_pos} · 밴드폭{bw}%</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">MA 배열</div>
-                        <div class="metric-value">{ma}/4</div>
-                        <div class="tip">5·20·60·120일선 위</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">거래량비율</div>
-                        <div class="metric-value">{vr}%</div>
-                        <div class="tip">20일 평균 대비</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-label">PER / PBR</div>
-                        <div class="metric-value">{s.get("PER","-")} / {s.get("PBR","-")}</div>
-                        <div class="tip">PBR 1↓ 자산 저평가</div>
-                    </div>
-                </div>
-
-                <div style="margin-top:8px">
-                    <div class="metric-label" style="margin-bottom:4px">시가/고가/저가</div>
-                    <div style="font-size:0.8rem;color:#adb5bd;">
-                        {s.get("시가",0):,} / {s.get("고가",0):,} / {s.get("저가",0):,}
-                    </div>
-                </div>
-                <hr class="divider">
-                <div class="metric-label" style="margin-bottom:4px">판단 근거</div>
-                {"".join(f'<div class="reason-item">· {r}</div>' for r in sig["근거"])}
-            </div>
-            """, unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ------------------------------------------------------------
-# 섹션 4. 지표 설명
-# ------------------------------------------------------------
-with st.expander("📚 지표 설명 보기"):
+with st.expander('📚 지표 설명 보기'):
     for k, v in INDICATOR_DESC.items():
-        st.markdown(f"**{k}** — {v}")
+        st.markdown(f'**{k}** — {v}')
 
-st.caption("※ 본 앱은 투자 참고용이며, 투자 결정의 책임은 본인에게 있습니다.")
+st.caption('※ 본 앱은 투자 참고용이며, 투자 결정의 책임은 본인에게 있습니다.')
