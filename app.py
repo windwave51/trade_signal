@@ -9,30 +9,36 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title='Trade Signal', page_icon='📊', layout='wide')
 
 st.markdown('''<style>
-.card{background:#1e2130;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid #2d3250;}
-.stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #2d3250;}
-.stock-name{font-size:1.1rem;font-weight:700;color:#e0e4f0;}
-.stock-price{font-size:1.4rem;font-weight:800;color:#ffffff;}
-.price-up{color:#ff6b6b;}
-.price-down{color:#4ecdc4;}
+.card{background:#ffffff;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid #e0e4ec;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.stock-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e8ecf0;}
+.stock-name{font-size:1.1rem;font-weight:700;color:#1a1f2e;}
+.stock-price{font-size:1.4rem;font-weight:800;color:#1a1f2e;}
+.price-up{color:#e03131;}
+.price-down{color:#1971c2;}
 .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.85rem;font-weight:600;}
-.badge-buy{background:#1a472a;color:#51cf66;border:1px solid #51cf66;}
-.badge-watch{background:#1a3a5c;color:#74c0fc;border:1px solid #74c0fc;}
-.badge-hold{background:#2d2d2d;color:#adb5bd;border:1px solid #adb5bd;}
-.badge-caution{background:#3d2a00;color:#ffd43b;border:1px solid #ffd43b;}
-.badge-sell{background:#4a1010;color:#ff6b6b;border:1px solid #ff6b6b;}
+.badge-buy{background:#ebfbee;color:#2f9e44;border:1px solid #8ce99a;}
+.badge-watch{background:#e7f5ff;color:#1971c2;border:1px solid #74c0fc;}
+.badge-hold{background:#f8f9fa;color:#868e96;border:1px solid #ced4da;}
+.badge-caution{background:#fff9db;color:#e67700;border:1px solid #ffd43b;}
+.badge-sell{background:#fff5f5;color:#e03131;border:1px solid #ffa8a8;}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
-.metric-item{background:#252840;border-radius:8px;padding:10px 12px;}
+.metric-item{background:#f8f9fc;border-radius:8px;padding:10px 12px;border:1px solid #e8ecf0;}
 .metric-label{font-size:0.7rem;color:#868e96;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px;}
-.metric-value{font-size:0.95rem;font-weight:600;color:#e0e4f0;}
-.reason-item{font-size:0.8rem;color:#adb5bd;padding:3px 0;border-bottom:1px solid #2d3250;}
-.tip{font-size:0.75rem;color:#636e80;font-style:italic;margin-top:2px;}
-.divider{border:none;border-top:1px solid #2d3250;margin:8px 0;}
-.market-card{background:#1e2130;border-radius:10px;padding:14px 16px;border:1px solid #2d3250;text-align:center;}
+.metric-value{font-size:0.95rem;font-weight:600;color:#1a1f2e;}
+.reason-item{font-size:0.8rem;color:#495057;padding:3px 0;border-bottom:1px solid #e8ecf0;}
+.tip{font-size:0.75rem;color:#adb5bd;font-style:italic;margin-top:2px;}
+.divider{border:none;border-top:1px solid #e8ecf0;margin:8px 0;}
+.market-card{background:#ffffff;border-radius:10px;padding:14px 16px;border:1px solid #e0e4ec;box-shadow:0 2px 6px rgba(0,0,0,0.05);text-align:center;}
 .market-label{font-size:0.72rem;color:#868e96;margin-bottom:4px;}
-.market-value{font-size:1.05rem;font-weight:700;color:#e0e4f0;}
-.market-chg-up{font-size:0.8rem;color:#ff6b6b;}
-.market-chg-down{font-size:0.8rem;color:#4ecdc4;}
+.market-value{font-size:1.05rem;font-weight:700;color:#1a1f2e;}
+.market-chg-up{font-size:0.8rem;color:#e03131;}
+.market-chg-down{font-size:0.8rem;color:#1971c2;}
+.indicator-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.85rem;}
+.indicator-table th{background:#f1f3f5;color:#495057;padding:8px 12px;text-align:left;font-weight:600;border-bottom:2px solid #dee2e6;}
+.indicator-table td{padding:8px 12px;border-bottom:1px solid #e8ecf0;color:#495057;vertical-align:top;}
+.indicator-table td:first-child{font-weight:600;color:#1a1f2e;white-space:nowrap;width:100px;}
+.indicator-table tr:last-child td{border-bottom:none;}
+.indicator-table tr:hover td{background:#f8f9fc;}
 </style>''', unsafe_allow_html=True)
 
 APP_KEY    = st.secrets['APP_KEY']
@@ -316,8 +322,8 @@ import pandas as pd
 df = pd.DataFrame(rows).sort_values('점수', ascending=False).reset_index(drop=True)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-with st.expander('📖 점수 해석 가이드'):
-    st.markdown('''
+st.subheader('📖 점수 해석 가이드')
+st.markdown('''
 | 점수 | 시그널 | 의미 |
 |------|--------|------|
 | +5 이상 | 🟢 매수 | 다수 지표 매수 신호 일치 |
@@ -327,7 +333,7 @@ with st.expander('📖 점수 해석 가이드'):
 | -5 이하 | 🔴 매도 | 다수 지표 매도 신호 일치 |
 
 > 수급(외국인·기관)과 뉴스는 반영되지 않으므로 반드시 교차 확인하세요.
-    ''')
+''')
 
 st.markdown('<br>', unsafe_allow_html=True)
 st.subheader('🔍 종목별 상세')
@@ -341,8 +347,12 @@ for row_start in range(0, len(names), 4):
         with cols[col_idx]:
             st.markdown(build_card(name, s, t, sig), unsafe_allow_html=True)
 
-with st.expander('📚 지표 설명 보기'):
-    for k, v in INDICATOR_DESC.items():
-        st.markdown(f'**{k}** — {v}')
+st.subheader('📚 지표 설명')
+rows_desc = [{'지표': k, '설명': v} for k, v in INDICATOR_DESC.items()]
+table_html = '<table class="indicator-table"><thead><tr><th>지표</th><th>설명</th></tr></thead><tbody>'
+for r in rows_desc:
+    table_html += '<tr><td>' + r['지표'] + '</td><td>' + r['설명'] + '</td></tr>'
+table_html += '</tbody></table>'
+st.markdown(table_html, unsafe_allow_html=True)
 
 st.caption('※ 본 앱은 투자 참고용이며, 투자 결정의 책임은 본인에게 있습니다.')
