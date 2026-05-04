@@ -99,6 +99,14 @@ def safe_get(url, headers, params):
         return data if data.get('rt_cd') == '0' else None
     except: return None
 
+def safe_int(val, default=0):
+    try: return int(val) if str(val).strip() not in ('', '-', 'None') else default
+    except: return default
+
+def safe_float(val, default=0.0):
+    try: return float(val) if str(val).strip() not in ('', '-', 'None') else default
+    except: return default
+
 def get_last_biz():
     d = datetime.today()
     while d.weekday() >= 5: d -= timedelta(days=1)
@@ -164,28 +172,28 @@ def fetch_stocks(token):
         inv_out = inv_data['output'][0] if inv_data and inv_data.get('output') else {}
 
         result[name] = {
-            '현재가':       int(out.get('stck_prpr',0)),
-            '전일대비':     int(out.get('prdy_vrss',0)),
-            '등락률(%)':    float(out.get('prdy_ctrt',0)),
-            '거래량':       int(out.get('acml_vol',0)),
-            '시가':         int(out.get('stck_oprc',0)),
-            '고가':         int(out.get('stck_hgpr',0)),
-            '저가':         int(out.get('stck_lwpr',0)),
-            '52주고가':     int(out.get('w52_hgpr',0)),
-            '52주저가':     int(out.get('w52_lwpr',0)),
-            'PER':          float(out.get('per',0)),
-            'PBR':          float(out.get('pbr',0)),
-            '시가총액(억)': int(out.get('hts_avls',0)),
+            '현재가':       safe_int(out.get('stck_prpr')),
+            '전일대비':     safe_int(out.get('prdy_vrss')),
+            '등락률(%)':    safe_float(out.get('prdy_ctrt')),
+            '거래량':       safe_int(out.get('acml_vol')),
+            '시가':         safe_int(out.get('stck_oprc')),
+            '고가':         safe_int(out.get('stck_hgpr')),
+            '저가':         safe_int(out.get('stck_lwpr')),
+            '52주고가':     safe_int(out.get('w52_hgpr')),
+            '52주저가':     safe_int(out.get('w52_lwpr')),
+            'PER':          safe_float(out.get('per')),
+            'PBR':          safe_float(out.get('pbr')),
+            '시가총액(억)': safe_int(out.get('hts_avls')),
             # 프로그램 매매
-            '프로그램_순매수':  int(prog_out.get('whol_smtn_ntby_qty',0)),
-            '프로그램_매수량':  int(prog_out.get('whol_smtn_shnu_vol',0)),
-            '프로그램_매도량':  int(prog_out.get('whol_smtn_seln_vol',0)),
+            '프로그램_순매수':  safe_int(prog_out.get('whol_smtn_ntby_qty')),
+            '프로그램_매수량':  safe_int(prog_out.get('whol_smtn_shnu_vol')),
+            '프로그램_매도량':  safe_int(prog_out.get('whol_smtn_seln_vol')),
             # 외국인·기관·개인
-            '외국인_순매수':    int(inv_out.get('frgn_ntby_qty',0)),
-            '기관_순매수':      int(inv_out.get('orgn_ntby_qty',0)),
-            '개인_순매수':      int(inv_out.get('prsn_ntby_qty',0)),
-            '외국인_순매수금':  int(inv_out.get('frgn_ntby_tr_pbmn',0)),
-            '기관_순매수금':    int(inv_out.get('orgn_ntby_tr_pbmn',0)),
+            '외국인_순매수':    safe_int(inv_out.get('frgn_ntby_qty')),
+            '기관_순매수':      safe_int(inv_out.get('orgn_ntby_qty')),
+            '개인_순매수':      safe_int(inv_out.get('prsn_ntby_qty')),
+            '외국인_순매수금':  safe_int(inv_out.get('frgn_ntby_tr_pbmn')),
+            '기관_순매수금':    safe_int(inv_out.get('orgn_ntby_tr_pbmn')),
         }
     return result
 
