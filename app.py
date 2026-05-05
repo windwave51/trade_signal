@@ -424,8 +424,8 @@ st.markdown(table_html, unsafe_allow_html=True)
 
 st.divider()
 st.subheader('🔬 종목별 상세 분석')
-sel = st.selectbox('분석할 종목', list(WATCHLIST.keys()), key='analysis_sel')
-if st.button('분석 실행', key='run_analysis'):
+sel = st.selectbox('분석할 종목', list(WATCHLIST.keys()), key='scoring_analysis_sel')
+if st.button('분석 실행', key='scoring_run_analysis'):
     with st.spinner('스코어링 중...'):
         s = stocks.get(sel, {})
         t = tech_all.get(sel, {})
@@ -443,8 +443,8 @@ if st.button('분석 실행', key='run_analysis'):
 
 st.divider()
 st.subheader('🔬 종목별 상세 분석')
-sel = st.selectbox('분석할 종목', list(WATCHLIST.keys()), key='analysis_sel')
-if st.button('분석 실행', key='run_analysis'):
+sel = st.selectbox('분석할 종목', list(WATCHLIST.keys()), key='scoring_analysis_sel')
+if st.button('분석 실행', key='scoring_run_analysis'):
     with st.spinner('스코어링 중...'):
         s = stocks.get(sel, {})
         t = tech_all.get(sel, {})
