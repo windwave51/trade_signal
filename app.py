@@ -348,7 +348,6 @@ st.dataframe(df, use_container_width=True, hide_index=True)
 
 
 > 수급(외국인·기관)과 뉴스는 반영되지 않으므로 반드시 교차 확인하세요.
-''')
 
 st.markdown('<br>', unsafe_allow_html=True)
 st.subheader('🔍 종목별 상세')
