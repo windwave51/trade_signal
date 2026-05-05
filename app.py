@@ -118,6 +118,15 @@ def get_last_biz():
     while d.weekday() >= 5: d -= timedelta(days=1)
     return d.strftime('%Y%m%d')
 
+def get_last_n_biz(n=5):
+    days = []
+    d = datetime.today()
+    while len(days) < n:
+        if d.weekday() < 5:
+            days.append(d.strftime('%Y%m%d'))
+        d -= timedelta(days=1)
+    return days[-1], days[0]
+
 @st.cache_data(ttl=300)
 def fetch_market(token):
     result = {}
@@ -168,14 +177,18 @@ def fetch_stocks(token):
 
         # 외국인·기관·개인 수급
         time.sleep(0.3)
+        start_5d, end_5d = get_last_n_biz(5)
         inv_data = safe_get(
             f'{BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-investor',
             get_headers('FHKST01010900', token),
             {'FID_COND_MRKT_DIV_CODE':'J','FID_INPUT_ISCD':ticker,
-             'FID_INPUT_DATE_1':get_last_biz(),'FID_INPUT_DATE_2':get_last_biz(),
+             'FID_INPUT_DATE_1':start_5d,'FID_INPUT_DATE_2':end_5d,
              'FID_PERIOD_DIV_CODE':'D'},
         )
-        inv_out = inv_data['output'][0] if inv_data and inv_data.get('output') else {}
+        inv_rows = inv_data['output'][:5] if inv_data and inv_data.get('output') else []
+        inv_out  = inv_rows[0] if inv_rows else {}
+        frgn_5d = sum(safe_int(r.get('frgn_ntby_tr_pbmn')) for r in inv_rows)
+        orgn_5d = sum(safe_int(r.get('orgn_ntby_tr_pbmn')) for r in inv_rows)
 
         result[name] = {
             '현재가':       safe_int(out.get('stck_prpr')),
@@ -198,7 +211,10 @@ def fetch_stocks(token):
             '외국인_순매수':    safe_int(inv_out.get('frgn_ntby_qty')),
             '기관_순매수':      safe_int(inv_out.get('orgn_ntby_qty')),
             '개인_순매수':      safe_int(inv_out.get('prsn_ntby_qty')),
-            '외국인_순매수금':  safe_int(inv_out.get('frgn_ntby_tr_pbmn')),
+            '외국인_순매수금':    safe_int(inv_out.get('frgn_ntby_tr_pbmn')),
+            '기관_순매수금':      safe_int(inv_out.get('orgn_ntby_tr_pbmn')),
+            '외국인_5일순매수금': frgn_5d,
+            '기관_5일순매수금':   orgn_5d,
             '기관_순매수금':    safe_int(inv_out.get('orgn_ntby_tr_pbmn')),
         }
     return result
