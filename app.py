@@ -7,6 +7,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import pytz
 
 st.set_page_config(page_title='Trade Signal', page_icon='📊', layout='wide')
 
@@ -46,6 +47,7 @@ st.markdown('''<style>
 APP_KEY    = st.secrets['APP_KEY']
 APP_SECRET = st.secrets['APP_SECRET']
 BASE_URL   = 'https://openapi.koreainvestment.com:9443'
+KST        = pytz.timezone('Asia/Seoul')
 
 WATCHLIST = {
     '삼성전자':           '005930',
@@ -114,7 +116,7 @@ def safe_float(val, default=0.0):
     except: return default
 
 def get_last_biz():
-    d = datetime.today()
+    d = datetime.now(KST)
     while d.weekday() >= 5: d -= timedelta(days=1)
     return d.strftime('%Y%m%d')
 
@@ -319,7 +321,7 @@ if interval:
 else:
     st.sidebar.caption('자동 새로고침 꺼짐')
 
-st.caption(f"마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  |  ※ 투자 참고용")
+st.caption(f"마지막 업데이트: {datetime.now(KST).strftime('%Y-%m-%d %H:%M KST')}  |  ※ 투자 참고용")
 
 token    = get_access_token()
 market   = fetch_market(token)
