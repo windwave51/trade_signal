@@ -1,6 +1,5 @@
 import streamlit as st
 from scoring import score_stock, generate_stage2_report
-from scoring import score_stock, generate_stage2_report
 import requests
 import time
 import yfinance as yf
@@ -237,45 +236,6 @@ def fetch_tech():
         except: pass
     return result
 
-def calc_signal(stock, tech):
-    score=0; log=[]
-    rsi = tech.get('RSI',50)
-    if rsi<=30:   score+=2; log.append(f'RSI 과매도({rsi}) +2')
-    elif rsi<=45: score+=1; log.append(f'RSI 저점권({rsi}) +1')
-    elif rsi>=70: score-=2; log.append(f'RSI 과매수({rsi}) -2')
-    elif rsi>=60: score-=1; log.append(f'RSI 고점권({rsi}) -1')
-    else:                   log.append(f'RSI 중립({rsi}) 0')
-    hist_v=tech.get('Histogram',0); golden=tech.get('골든크로스',False)
-    if golden:
-        v=2 if hist_v>0 else 1; score+=v; log.append(f'MACD 골든크로스 +{v}')
-    else:
-        v=2 if hist_v<0 else 1; score-=v; log.append(f'MACD 데드크로스 -{v}')
-    pctb=tech.get('%B',50); bb_pos=tech.get('BB위치','밴드내')
-    if bb_pos=='하단이탈':   score+=2; log.append('볼린저 하단이탈 +2')
-    elif pctb<=20:           score+=1; log.append(f'볼린저 하단근접(%B:{pctb}) +1')
-    elif bb_pos=='상단돌파': score-=2; log.append('볼린저 상단돌파 -2')
-    elif pctb>=80:           score-=1; log.append(f'볼린저 상단근접(%B:{pctb}) -1')
-    else:                              log.append(f'볼린저 중립(%B:{pctb}) 0')
-    ma=tech.get('MA상승수',0)
-    if ma>=3:   score+=2; log.append(f'MA 상승배열({ma}/4) +2')
-    elif ma>=2: score+=1; log.append(f'MA 부분상승({ma}/4) +1')
-    elif ma<=1: score-=2; log.append(f'MA 하락배열({ma}/4) -2')
-    else:       score-=1; log.append(f'MA 부분하락({ma}/4) -1')
-    vr=tech.get('거래량비율(%)',100)
-    if vr>=200:  score+=1; log.append(f'거래량 급등({vr}%) +1')
-    elif vr<=50: score-=1; log.append(f'거래량 급감({vr}%) -1')
-    else:                  log.append(f'거래량 보통({vr}%) 0')
-    pbr=stock.get('PBR',0)
-    if 0<pbr<=1.0:  score+=1; log.append(f'PBR 저평가({pbr}) +1')
-    elif pbr>=15:   score-=1; log.append(f'PBR 고평가({pbr}) -1')
-    else:                     log.append(f'PBR 중립({pbr}) 0')
-    if score>=5:    sig,badge='🟢 매수','badge-buy'
-    elif score>=2:  sig,badge='🔵 관심','badge-watch'
-    elif score>=-1: sig,badge='⚪ 관망','badge-hold'
-    elif score>=-4: sig,badge='🟡 주의','badge-caution'
-    else:           sig,badge='🔴 매도','badge-sell'
-    return {'점수':score,'시그널':sig,'뱃지':badge,'근거':log}
-
 def build_card(name, s, t, sig):
     chg     = s.get('등락률(%)', 0)
     chg_cls = 'price-up' if chg > 0 else 'price-down'
@@ -373,7 +333,6 @@ rows = []
 for name in WATCHLIST:
     s = stocks.get(name, {}); t = tech_all.get(name, {})
     if not s or not t: continue
-    sig = calc_signal(s, t)
     rows.append({
         '종목': name,
         '현재가(원)': f"{s['현재가']:,}",
@@ -382,22 +341,11 @@ for name in WATCHLIST:
         '%B': t.get('%B','-'),
         'MA배열': f"{t.get('MA상승수',0)}/4",
         '거래량비율': f"{t.get('거래량비율(%)' ,'-')}%",
-        '점수': sig['점수'],
-        '시그널': sig['시그널'],
     })
 import pandas as pd
 df = pd.DataFrame(rows).sort_values('점수', ascending=False).reset_index(drop=True)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-st.subheader('📖 점수 해석 가이드')
-st.markdown('''
-| 점수 | 시그널 | 의미 |
-|------|--------|------|
-| +5 이상 | 🟢 매수 | 다수 지표 매수 신호 일치 |
-| +2 ~ +4 | 🔵 관심 | 긍정 신호 우세 |
-| -1 ~ +1 | ⚪ 관망 | 신호 혼재 |
-| -4 ~ -2 | 🟡 주의 | 부정 신호 우세 |
-| -5 이하 | 🔴 매도 | 다수 지표 매도 신호 일치 |
 
 > 수급(외국인·기관)과 뉴스는 반영되지 않으므로 반드시 교차 확인하세요.
 ''')
@@ -410,9 +358,8 @@ for row_start in range(0, len(names), 4):
     for col_idx, name in enumerate(names[row_start:row_start+4]):
         s = stocks.get(name, {}); t = tech_all.get(name, {})
         if not s or not t: continue
-        sig = calc_signal(s, t)
         with cols[col_idx]:
-            st.markdown(build_card(name, s, t, sig), unsafe_allow_html=True)
+            st.markdown(build_card(name, s, t,), unsafe_allow_html=True)
 
 st.subheader('📚 지표 설명')
 rows_desc = [{'지표': k, '설명': v} for k, v in INDICATOR_DESC.items()]
@@ -421,25 +368,6 @@ for r in rows_desc:
     table_html += '<tr><td>' + r['지표'] + '</td><td>' + r['설명'] + '</td></tr>'
 table_html += '</tbody></table>'
 st.markdown(table_html, unsafe_allow_html=True)
-
-st.divider()
-st.subheader('🔬 종목별 상세 분석')
-sel = st.selectbox('분석할 종목', list(WATCHLIST.keys()), key='scoring_analysis_sel')
-if st.button('분석 실행', key='scoring_run_analysis'):
-    with st.spinner('스코어링 중...'):
-        s = stocks.get(sel, {})
-        t = tech_all.get(sel, {})
-        if s and t:
-            result = score_stock(sel, s, t, market)
-            report = generate_stage2_report(result, stocks, tech_all, market)
-            total  = result['scores']['total']
-            c1, c2, c3 = st.columns(3)
-            c1.metric('총점', f"{total['adj_score']}/100")
-            c2.metric('등급', total['grade'])
-            c3.metric('시장조정', f"{total['adjustment']:+d}점")
-            st.text(report)
-        else:
-            st.warning('데이터를 먼저 수집해 주세요.')
 
 st.divider()
 st.subheader('🔬 종목별 상세 분석')
