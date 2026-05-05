@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import requests
 import time
 import yfinance as yf
@@ -291,6 +292,16 @@ def build_card(name, s, t):
     )
 
 st.title('📊 Trade Signal')
+# 자동 새로고침
+refresh_options = {'off': 0, '15분': 900, '30분': 1800, '1시간': 3600}
+sel_refresh = st.sidebar.selectbox('🔄 자동 새로고침', list(refresh_options.keys()), index=1)
+interval = refresh_options[sel_refresh]
+if interval:
+    st_autorefresh(interval=interval * 1000, key='autorefresh')
+    st.sidebar.caption(f'매 {sel_refresh}마다 자동 갱신')
+else:
+    st.sidebar.caption('자동 새로고침 꺼짐')
+
 st.caption(f"마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  |  ※ 투자 참고용")
 
 token    = get_access_token()
