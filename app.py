@@ -1,5 +1,6 @@
 import streamlit as st
 from scoring import score_stock, generate_stage2_report
+from scoring import score_stock, generate_stage2_report
 import requests
 import time
 import yfinance as yf
@@ -420,6 +421,25 @@ for r in rows_desc:
     table_html += '<tr><td>' + r['지표'] + '</td><td>' + r['설명'] + '</td></tr>'
 table_html += '</tbody></table>'
 st.markdown(table_html, unsafe_allow_html=True)
+
+st.divider()
+st.subheader('🔬 종목별 상세 분석')
+sel = st.selectbox('분석할 종목', list(WATCHLIST.keys()), key='analysis_sel')
+if st.button('분석 실행', key='run_analysis'):
+    with st.spinner('스코어링 중...'):
+        s = stocks.get(sel, {})
+        t = tech_all.get(sel, {})
+        if s and t:
+            result = score_stock(sel, s, t, market)
+            report = generate_stage2_report(result, stocks, tech_all, market)
+            total  = result['scores']['total']
+            c1, c2, c3 = st.columns(3)
+            c1.metric('총점', f"{total['adj_score']}/100")
+            c2.metric('등급', total['grade'])
+            c3.metric('시장조정', f"{total['adjustment']:+d}점")
+            st.text(report)
+        else:
+            st.warning('데이터를 먼저 수집해 주세요.')
 
 st.divider()
 st.subheader('🔬 종목별 상세 분석')
