@@ -343,7 +343,7 @@ for name in WATCHLIST:
         '거래량비율': f"{t.get('거래량비율(%)' ,'-')}%",
     })
 import pandas as pd
-df = pd.DataFrame(rows).sort_values('점수', ascending=False).reset_index(drop=True)
+df = pd.DataFrame(rows).reset_index(drop=True)
 st.dataframe(df, use_container_width=True, hide_index=True)
 
 st.markdown('<br>', unsafe_allow_html=True)
