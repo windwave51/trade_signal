@@ -236,20 +236,18 @@ def fetch_tech():
         except: pass
     return result
 
-def build_card(name, s, t, sig):
+def build_card(name, s, t):
     chg     = s.get('등락률(%)', 0)
     chg_cls = 'price-up' if chg > 0 else 'price-down'
     sign    = '▲' if chg > 0 else '▼'
     golden  = '✅ 골든' if t.get('골든크로스') else '❌ 데드'
     bb_pos  = t.get('BB위치', '-')
-    reasons = ''.join('<div class="reason-item">· ' + r + '</div>' for r in sig['근거'])
     return (
         '<div class="card">'
         '<div class="stock-header">'
         '<div>'
         '<div class="stock-name">' + name + '</div>'
-        '<span class="badge ' + sig['뱃지'] + '">' + sig['시그널'] + ' ' + f"{sig['점수']:+d}점" + '</span>'
-        '</div>'
+            '</div>'
         '<div style="text-align:right">'
         '<div class="stock-price">' + f"{s['현재가']:,}" + '</div>'
         '<div class="' + chg_cls + '">' + sign + ' ' + f'{abs(chg):.2f}%' + '</div>'
@@ -286,9 +284,7 @@ def build_card(name, s, t, sig):
         '<div class="tip">매수 ' + f"{s.get('프로그램_매수량',0):,}" + ' / 매도 ' + f"{s.get('프로그램_매도량',0):,}" + '</div>'
         '</div>'
         '</div>'
-        '<hr class="divider">'
-        '<div class="metric-label" style="margin-bottom:4px">판단 근거</div>'
-        + reasons + '</div>'
+        '</div>'
     )
 
 st.title('📊 Trade Signal')
