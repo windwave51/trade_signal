@@ -378,9 +378,9 @@ st.dataframe(df, use_container_width=True, hide_index=True)
 st.markdown('<br>', unsafe_allow_html=True)
 st.subheader('🔍 종목별 상세')
 names = list(WATCHLIST.keys())
-for row_start in range(0, len(names), 4):
-    cols = st.columns(4)
-    for col_idx, name in enumerate(names[row_start:row_start+4]):
+for row_start in range(0, len(names), 3):
+    cols = st.columns(3)
+    for col_idx, name in enumerate(names[row_start:row_start+3]):
         s = stocks.get(name, {}); t = tech_all.get(name, {})
         if not s or not t: continue
         with cols[col_idx]:
