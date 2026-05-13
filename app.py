@@ -80,12 +80,26 @@ INDICATOR_DESC = {
 
 @st.cache_data(ttl=1800)
 def get_access_token():
-    res = requests.post(
-        f'{BASE_URL}/oauth2/tokenP',
-        headers={'Content-Type': 'application/json'},
-        json={'grant_type': 'client_credentials', 'appkey': APP_KEY, 'appsecret': APP_SECRET},
-    )
-    return res.json()['access_token']
+    for attempt in range(3):
+        try:
+            res = requests.post(
+                f'{BASE_URL}/oauth2/tokenP',
+                headers={'Content-Type': 'application/json'},
+                json={
+                    'grant_type': 'client_credentials',
+                    'appkey':     APP_KEY,
+                    'appsecret':  APP_SECRET,
+                },
+                timeout=10,
+            )
+            data = res.json()
+            if 'access_token' in data:
+                return data['access_token']
+            time.sleep(2)
+        except Exception:
+            time.sleep(2)
+    st.error('KIS API 토큰 발급 실패. 잠시 후 새로고침해 주세요.')
+    st.stop()
 
 def get_headers(tr_id, token):
     return {
