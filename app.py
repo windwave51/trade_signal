@@ -10,6 +10,7 @@ import pytz
 import pytz
 import pytz
 import pytz
+import pytz
 
 st.set_page_config(page_title='Trade Signal', page_icon='📊', layout='wide')
 
@@ -49,6 +50,7 @@ st.markdown('''<style>
 APP_KEY    = st.secrets['APP_KEY']
 APP_SECRET = st.secrets['APP_SECRET']
 BASE_URL   = 'https://openapi.koreainvestment.com:9443'
+KST        = pytz.timezone('Asia/Seoul')
 KST        = pytz.timezone('Asia/Seoul')
 KST        = pytz.timezone('Asia/Seoul')
 KST        = pytz.timezone('Asia/Seoul')
